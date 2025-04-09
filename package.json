@@ -1,26 +1,48 @@
 {
-	"name": "todoist-mcp-server-cf",
-	"version": "0.0.1",
-	"private": true,
-	"type": "module",
-	"scripts": {
-		"deploy": "wrangler deploy",
-		"dev": "wrangler dev",
-		"start": "wrangler dev",
-		"cf-typegen": "wrangler types"
-	},
-	"devDependencies": {
-		"@cloudflare/workers-oauth-provider": "^0.0.3",
-		"@modelcontextprotocol/sdk": "^1.7.0",
-		"@types/node": "^22.14.0",
-		"agents": "^0.0.59",
-		"hono": "^4.7.4",
-		"just-pick": "^4.2.0",
-		"octokit": "^4.1.2",
-		"prettier": "^3.5.3",
-		"typescript": "^5.5.2",
-		"workers-mcp": "^0.0.13",
-		"wrangler": "^4.9.1",
-		"zod": "^3.24.2"
-	}
+    "name": "todoist-mcp-server-cf",
+    "version": "0.0.1",
+    "private": true,
+    "description": "Todoist MCP Server - deployed on Cloudflare",
+    "keywords": [
+        "mcp",
+        "todoist",
+        "model-context-protocol"
+    ],
+    "homepage": "https://github.com/deepakjois/todoist-mcp-server-cf#readme",
+    "bugs": {
+        "url": "https://github.com/deepakjois/todoist-mcp-server-cf/issues"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/deepakjois/todoist-mcp-server-cf.git"
+    },
+    "license": "MIT",
+    "author": "Deepak Jois",
+    "type": "module",
+    "scripts": {
+        "cf-typegen": "wrangler types",
+        "deploy": "wrangler deploy",
+        "dev": "wrangler dev",
+        "fix-all": "npm run format && npm run lint-fix",
+        "fmt": "prettier --write \"src/**/*.ts\"",
+        "lint": "eslint src/**/*.ts",
+        "lint-fix": "eslint --fix \"src/**/*.ts\"",
+        "start": "wrangler dev"
+    },
+    "dependencies": {
+        "@cloudflare/workers-oauth-provider": "^0.0.2",
+        "@cloudflare/workers-types": "^4.20250409.0",
+        "@eslint/js": "^9.24.0",
+        "@modelcontextprotocol/sdk": "^1.9.0",
+        "@types/node": "^22.14.0",
+        "agents": "^0.0.59",
+        "eslint": "^9.24.0",
+        "globals": "^16.0.0",
+        "hono": "^4.7.6",
+        "prettier": "^3.5.3",
+        "typescript": "^5.8.3",
+        "typescript-eslint": "^8.29.1",
+        "wrangler": "^4.9.1",
+        "zod": "^3.24.2"
+    }
 }
