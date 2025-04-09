@@ -1,7 +1,7 @@
 import type { AuthRequest, OAuthHelpers } from "@cloudflare/workers-oauth-provider";
 import { Hono } from "hono";
 import { Octokit } from "octokit";
-import { fetchUpstreamAuthToken, getUpstreamAuthorizeUrl } from "./utils";
+import { fetchUpstreamAuthToken, getUpstreamAuthorizeUrl } from "./utils.js";
 
 const app = new Hono<{ Bindings: Env & { OAUTH_PROVIDER: OAuthHelpers } }>();
 
@@ -22,9 +22,9 @@ app.get("/authorize", async (c) => {
 
 	return Response.redirect(
 		getUpstreamAuthorizeUrl({
-			upstream_url: "https://github.com/login/oauth/authorize",
-			scope: "read:user",
-			client_id: c.env.GITHUB_CLIENT_ID,
+			upstream_url: "https://todoist.com/oauth/authorize",
+			scope: "data:read",
+			client_id: c.env.TODOIST_CLIENT_ID,
 			redirect_uri: new URL("/callback", c.req.url).href,
 			state: btoa(JSON.stringify(oauthReqInfo)),
 		}),
@@ -48,17 +48,20 @@ app.get("/callback", async (c) => {
 
 	// Exchange the code for an access token
 	const [accessToken, errResponse] = await fetchUpstreamAuthToken({
-		upstream_url: "https://github.com/login/oauth/access_token",
-		client_id: c.env.GITHUB_CLIENT_ID,
-		client_secret: c.env.GITHUB_CLIENT_SECRET,
+		upstream_url: "https://todoist.com/oauth/access_token",
+		client_id: c.env.TODOIST_CLIENT_ID,
+		client_secret: c.env.TODOIST_CLIENT_SECRET,
 		code: c.req.query("code"),
 		redirect_uri: new URL("/callback", c.req.url).href,
 	});
 	if (errResponse) return errResponse;
 
-	// Fetch the user info from GitHub
-	const user = await new Octokit({ auth: accessToken }).rest.users.getAuthenticated();
-	const { login, name, email } = user.data;
+	// dummy data
+	const { login, name, email } = {
+		login: "deepakjois",
+		name: "Deepak",
+		email: "deepakjois@gmail.com",
+	};
 
 	// Return back to the MCP client a new token
 	const { redirectTo } = await c.env.OAUTH_PROVIDER.completeAuthorization({

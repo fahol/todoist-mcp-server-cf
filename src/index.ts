@@ -3,7 +3,7 @@ import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { Octokit } from "octokit";
-import { GitHubHandler } from "./github-handler";
+import { GitHubHandler } from "./github-handler.js";
 
 // Context from the auth process, encrypted & stored in the auth token
 // and provided to the DurableMCP as this.props
@@ -19,7 +19,7 @@ const ALLOWED_USERNAMES = new Set([
 	// For example: 'yourusername', 'coworkerusername'
 ]);
 
-export class MyMCP extends McpAgent<Props, Env> {
+export class TodoistMCP extends McpAgent<Props, Env> {
 	server = new McpServer({
 		name: "Github OAuth Proxy Demo",
 		version: "1.0.0",
@@ -90,7 +90,7 @@ export class MyMCP extends McpAgent<Props, Env> {
 
 export default new OAuthProvider({
 	apiRoute: "/sse",
-	apiHandler: MyMCP.mount("/sse"),
+	apiHandler: TodoistMCP.mount("/sse"),
 	defaultHandler: GitHubHandler,
 	authorizeEndpoint: "/authorize",
 	tokenEndpoint: "/token",
