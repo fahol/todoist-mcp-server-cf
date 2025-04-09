@@ -7,8 +7,7 @@ import { TodoistAuthHandler } from './todoist-auth-handler.js'
 // Context from the auth process, encrypted & stored in the auth token
 // and provided to the DurableMCP as this.props
 type Props = {
-    login: string
-    name: string
+    full_name: string
     email: string
     accessToken: string
 }

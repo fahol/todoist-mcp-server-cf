@@ -39,6 +39,7 @@
         "globals": "^16.0.0",
         "hono": "^4.7.6",
         "prettier": "^3.5.3",
+        "todoist-mcp": "^1.2.1",
         "typescript": "^5.8.3",
         "typescript-eslint": "^8.29.1",
         "wrangler": "^4.9.1",

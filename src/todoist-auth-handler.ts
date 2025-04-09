@@ -1,7 +1,6 @@
 import type { AuthRequest, OAuthHelpers } from '@cloudflare/workers-oauth-provider'
 import { Hono } from 'hono'
 import { fetchUpstreamAuthToken, getUpstreamAuthorizeUrl } from './utils.js'
-
 const app = new Hono<{ Bindings: Env & { OAUTH_PROVIDER: OAuthHelpers } }>()
 
 /**
@@ -55,25 +54,26 @@ app.get('/callback', async (c) => {
     })
     if (errResponse) return errResponse
 
-    // dummy data
-    const { login, name, email } = {
-        login: 'deepakjois',
-        name: 'Deepak',
-        email: 'deepakjois@gmail.com',
+    const response = await getUserInfo(accessToken)
+
+    if (!response.ok) {
+        return response
     }
+
+    const data = (await response.json()) as { user: { full_name: string; email: string } }
+    const { full_name, email } = data.user
 
     // Return back to the MCP client a new token
     const { redirectTo } = await c.env.OAUTH_PROVIDER.completeAuthorization({
         request: oauthReqInfo,
-        userId: login,
+        userId: email,
         metadata: {
-            label: name,
+            label: full_name,
         },
         scope: oauthReqInfo.scope,
-        // This will be available on this.props inside MyMCP
+        // This will be available on this.props inside TodoistMCP
         props: {
-            login,
-            name,
+            full_name,
             email,
             accessToken,
         },
@@ -81,5 +81,20 @@ app.get('/callback', async (c) => {
 
     return Response.redirect(redirectTo)
 })
+
+// Use sync API to get user info
+async function getUserInfo(accessToken: string) {
+    return await fetch('https://api.todoist.com/sync/v9/sync', {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+            sync_token: '*',
+            resource_types: '["user"]',
+        }),
+    })
+}
 
 export const TodoistAuthHandler = app
