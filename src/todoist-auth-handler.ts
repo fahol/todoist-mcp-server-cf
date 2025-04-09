@@ -76,10 +76,10 @@ app.get('/callback', async (c) => {
             name,
             email,
             accessToken,
-        } as Props,
+        },
     })
 
     return Response.redirect(redirectTo)
 })
 
-export const GitHubHandler = app
+export const TodoistAuthHandler = app
