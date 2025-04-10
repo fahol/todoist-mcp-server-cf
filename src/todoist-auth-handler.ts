@@ -6,10 +6,10 @@ const app = new Hono<{ Bindings: Env & { OAUTH_PROVIDER: OAuthHelpers } }>()
 /**
  * OAuth Authorization Endpoint
  *
- * This route initiates the GitHub OAuth flow when a user wants to log in.
+ * This route initiates the Todoist OAuth flow when a user wants to log in.
  * It creates a random state parameter to prevent CSRF attacks and stores the
  * original OAuth request information in KV storage for later retrieval.
- * Then it redirects the user to GitHub's authorization page with the appropriate
+ * Then it redirects the user to Todoist's authorization page with the appropriate
  * parameters so the user can authenticate and grant permissions.
  */
 app.get('/authorize', async (c) => {
@@ -32,7 +32,7 @@ app.get('/authorize', async (c) => {
 /**
  * OAuth Callback Endpoint
  *
- * This route handles the callback from GitHub after user authentication.
+ * This route handles the callback from Todoist after user authentication.
  * It exchanges the temporary code for an access token, then stores some
  * user metadata & the auth token as part of the 'props' on the token passed
  * down to the client. It ends by redirecting the client back to _its_ callback URL
@@ -82,7 +82,7 @@ app.get('/callback', async (c) => {
     return Response.redirect(redirectTo)
 })
 
-// Use sync API to get user info
+// Use Todoist sync API to get user info
 async function getUserInfo(accessToken: string) {
     return await fetch('https://api.todoist.com/sync/v9/sync', {
         method: 'POST',
