@@ -30,7 +30,7 @@
         "start": "wrangler dev"
     },
     "dependencies": {
-        "@cloudflare/workers-oauth-provider": "^0.0.2",
+        "@cloudflare/workers-oauth-provider": "^0.0.3",
         "@eslint/js": "^9.24.0",
         "@modelcontextprotocol/sdk": "^1.9.0",
         "@types/node": "^22.14.0",
