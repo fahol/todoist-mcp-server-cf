@@ -40,13 +40,13 @@ export class TodoistClient {
      * @param params - Query parameters object
      * @returns API response data
      */
-    async get(endpoint: string, params: Record<string, string> = {}): Promise<unknown> {
+    async get(endpoint: string, params: Record<string, unknown> = {}): Promise<unknown> {
         let url = `${API_BASE_URL}${endpoint}`
 
         const queryParams = new URLSearchParams()
         for (const [key, value] of Object.entries(params)) {
             if (value) {
-                queryParams.append(key, value)
+                queryParams.append(key, String(value))
             }
         }
 

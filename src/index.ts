@@ -3,7 +3,7 @@ import { McpAgent } from 'agents/mcp'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
 import { TodoistAuthHandler } from './todoist-auth-handler.js'
-import { TodoistApiClient } from './TodoistApiClient.js'
+import { TodoistClient } from './TodoistApiClient.js'
 // Context from the auth process, encrypted & stored in the auth token
 // and provided to the DurableMCP as this.props
 type Props = {
@@ -25,6 +25,51 @@ export class TodoistMCP extends McpAgent<Env, unknown, Props> {
                 content: [{ type: 'text', text: JSON.stringify({ email: this.props.email, full_name: this.props.full_name }) }],
             }
         })
+
+        // Get tasks by filter
+        this.server.tool(
+            'get_tasks_by_filter',
+            'Get tasks that match a Todoist filter query',
+            { filter: z.string().describe('The Todoist filter to apply to the tasks') },
+            async ({ filter }) => {
+                const client = new TodoistClient(this.props.accessToken)
+                try {
+                    const tasks = await client.get('/tasks/filter', { query: filter, limit: 200 }) as {
+                        next_cursor?: string
+                        results: Array<{
+                            content: string
+                            description: string
+                            due?: { date: string }
+                        }>
+                    }
+
+                    // check if tasks exceeds 200 by checking next_cursor
+                    if (tasks.next_cursor) {
+                        return {
+                            content: [{ type: 'text', text: 'Tasks limit exceeded' }],
+                        }
+                    }
+
+                    // Extract required fields and format the response
+                    const formattedTasks = tasks.results.map(task => ({
+                        content: task.content,
+                        description: task.description,
+                        due_date: task.due?.date || null
+                    }))
+
+                    return {
+                        content: [{ type: 'text', text: JSON.stringify(formattedTasks, null, 2) }],
+                    }
+                } catch (error: unknown) {
+                    console.error('Failed to fetch tasks:', error)
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+                    return {
+                        content: [{ type: 'text', text: `Error fetching tasks: ${errorMessage}` }],
+                        isError: true
+                    }
+                }
+            }
+        )
     }
 }
 
