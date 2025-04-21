@@ -13,5 +13,10 @@ Use the [Cloudflare AI Playground](https://playground.ai.cloudflare.com/) or [MC
 
 Claude Desktop doesn't support remote MCPs yet, but you can use [remote-mcp](https://github.com/geelen/mcp-remote) to point to it via a proxy.
 
+## Removing OAuth Access
+Even though I could promise you that I don't do anything malicious on the server with your Todoist data, you could revoke access to it anytime from Todist -> Settings -> Integrations
+
+<img width="646" alt="image" src="https://github.com/user-attachments/assets/fa3f9d99-0760-465a-a456-beac729a13ba" />
+
 ## Deploy your own
-Change the parameters in `wrangler.jsonc` and deploy your own Cloudflare worker and point to it.
+The safest way to ensure your OAuth access is not misused is to deploy your own instance of this server. Change the parameters in `wrangler.jsonc` and deploy your own Cloudflare worker and point to it.
