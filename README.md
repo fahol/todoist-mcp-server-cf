@@ -19,4 +19,9 @@ Even though I could promise you that I don't do anything malicious on the server
 <img width="646" alt="image" src="https://github.com/user-attachments/assets/fa3f9d99-0760-465a-a456-beac729a13ba" />
 
 ## Deploy your own
-The safest way to ensure your OAuth access is not misused is to deploy your own instance of this server. Change the parameters in `wrangler.jsonc` and deploy your own Cloudflare worker and point to it by doing `npm run deploy`.
+The safest way to ensure your OAuth access is not misused is to deploy your own instance of this server. 
+
+- Create a [new app](https://developer.todoist.com/appconsole.html) in Todoist for OAuth
+- Add the TODOIST_CLIENT_ID and TODOIST_CLIENT_SECRET secrets using the `wrangler secret put` command
+- Change the parameters in `wrangler.jsonc` 
+- Deploy your own Cloudflare worker by doing `npm run deploy`
