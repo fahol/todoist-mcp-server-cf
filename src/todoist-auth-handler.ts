@@ -1,6 +1,8 @@
 import type { AuthRequest, OAuthHelpers } from '@cloudflare/workers-oauth-provider'
 import { Hono } from 'hono'
 import { fetchUpstreamAuthToken, getUpstreamAuthorizeUrl } from './utils.js'
+import { TodoistClient } from './TodoistApiClient.js'
+
 const app = new Hono<{ Bindings: Env & { OAUTH_PROVIDER: OAuthHelpers } }>()
 
 /**
@@ -21,7 +23,7 @@ app.get('/authorize', async (c) => {
     return Response.redirect(
         getUpstreamAuthorizeUrl({
             upstream_url: 'https://todoist.com/oauth/authorize',
-            scope: 'data:read',
+            scope: 'data:read_write',
             client_id: c.env.TODOIST_CLIENT_ID,
             redirect_uri: new URL('/callback', c.req.url).href,
             state: btoa(JSON.stringify(oauthReqInfo)),
@@ -54,47 +56,33 @@ app.get('/callback', async (c) => {
     })
     if (errResponse) return errResponse
 
-    const response = await getUserInfo(accessToken)
+    // Get user info using Todoist API client
+    const client = new TodoistClient(accessToken)
+    try {
+        const userData = await client.get('/user')
+        const { full_name, email } = userData as { full_name: string; email: string }
 
-    if (!response.ok) {
-        return response
+        // Return back to the MCP client a new token
+        const { redirectTo } = await c.env.OAUTH_PROVIDER.completeAuthorization({
+            request: oauthReqInfo,
+            userId: email,
+            metadata: {
+                label: full_name,
+            },
+            scope: oauthReqInfo.scope,
+            // This will be available on this.props inside TodoistMCP
+            props: {
+                full_name,
+                email,
+                accessToken,
+            },
+        })
+
+        return Response.redirect(redirectTo)
+    } catch (error) {
+        console.error('Failed to fetch user info:', error)
+        return new Response('Failed to fetch user info', { status: 500 })
     }
-
-    const data = (await response.json()) as { user: { full_name: string; email: string } }
-    const { full_name, email } = data.user
-
-    // Return back to the MCP client a new token
-    const { redirectTo } = await c.env.OAUTH_PROVIDER.completeAuthorization({
-        request: oauthReqInfo,
-        userId: email,
-        metadata: {
-            label: full_name,
-        },
-        scope: oauthReqInfo.scope,
-        // This will be available on this.props inside TodoistMCP
-        props: {
-            full_name,
-            email,
-            accessToken,
-        },
-    })
-
-    return Response.redirect(redirectTo)
 })
-
-// Use Todoist sync API to get user info
-async function getUserInfo(accessToken: string) {
-    return await fetch('https://api.todoist.com/sync/v9/sync', {
-        method: 'POST',
-        headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-            sync_token: '*',
-            resource_types: '["user"]',
-        }),
-    })
-}
 
 export const TodoistAuthHandler = app
