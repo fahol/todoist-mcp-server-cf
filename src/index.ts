@@ -30,11 +30,17 @@ export class TodoistMCP extends McpAgent<Env, unknown, Props> {
         this.server.tool(
             'get_tasks_by_filter',
             'Get tasks that match a Todoist filter query',
-            { filter: z.string().describe('The Todoist filter to apply to the tasks') },
+            {
+                filter: z
+                    .string()
+                    .describe(
+                        'Filter by any [supported filter](https://todoist.com/help/articles/introduction-to-filters-V98wIH). Multiple filters (using the comma `,` operator) are not supported.'
+                    ),
+            },
             async ({ filter }) => {
                 const client = new TodoistClient(this.props.accessToken)
                 try {
-                    const tasks = await client.get('/tasks/filter', { query: filter, limit: 200 }) as {
+                    const tasks = (await client.get('/tasks/filter', { query: filter, limit: 200 })) as {
                         next_cursor?: string
                         results: Array<{
                             content: string
@@ -51,10 +57,10 @@ export class TodoistMCP extends McpAgent<Env, unknown, Props> {
                     }
 
                     // Extract required fields and format the response
-                    const formattedTasks = tasks.results.map(task => ({
+                    const formattedTasks = tasks.results.map((task) => ({
                         content: task.content,
                         description: task.description,
-                        due_date: task.due?.date || null
+                        due_date: task.due?.date || null,
                     }))
 
                     return {
@@ -65,7 +71,7 @@ export class TodoistMCP extends McpAgent<Env, unknown, Props> {
                     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
                     return {
                         content: [{ type: 'text', text: `Error fetching tasks: ${errorMessage}` }],
-                        isError: true
+                        isError: true,
                     }
                 }
             }
