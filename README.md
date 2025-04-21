@@ -1,4 +1,4 @@
-Simple proof-of-concept MCP Server to interact with [Todoist](https://www.todoist.com).
+Simple proof-of-concept MCP Server to interact with [Todoist](https://www.todoist.com). It contains a single tool as of now, but I might add more in the future if I actually end up using it.
 
 Unlike some other Todoist MCP servers, this one uses OAuth based authorization and is deployed in Cloudflare.
 
