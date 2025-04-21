@@ -4,7 +4,7 @@ Unlike some other Todoist MCP servers, this one uses OAuth based authorization a
 
 ## Demo
 
-https://github.com/user-attachments/assets/d340d899-b9cb-4175-b075-51d21345954e
+https://github.com/user-attachments/assets/3ce96d7c-cdeb-4152-8c44-e560b884c569
 
 ## How to Access
 URL:  https://todoist-mcp-server-cf.debugjois.workers.dev/sse
