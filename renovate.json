@@ -8,5 +8,8 @@
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
       "automerge": true
     }
-  ]
+  ],
+  "platformAutomerge": true,
+  "dependencyDashboard": true,
+  "ignoreTests": true
 }
