@@ -28,8 +28,8 @@
 	},
 	"kv_namespaces": [
 		{
-			"binding": "TodoistMCP_OAUTH_KV",
-			"id": "00e34264723a439ca9d47d4e6d0f6564"
+			"binding": "OAUTH_KV",
+			"id": "5ce256c2903d4048a0721f5b791cebc8"
 		}
 	],
 	"observability": {
