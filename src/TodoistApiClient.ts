@@ -84,4 +84,22 @@ export class TodoistClient {
 
         return this.handleResponse(response)
     }
+
+    /**
+     * Make a DELETE request to Todoist API
+     * @param endpoint - API endpoint path (without base URL)
+     * @returns API response data
+     */
+    async delete(endpoint: string): Promise<unknown> {
+        const url = `${API_BASE_URL}${endpoint}`
+
+        console.log(`Making DELETE request to: ${url}`)
+
+        const response = await fetch(url, {
+            method: 'DELETE',
+            headers: this.getHeaders(),
+        })
+
+        return this.handleResponse(response)
+    }
 }
