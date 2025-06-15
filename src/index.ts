@@ -818,6 +818,238 @@ export class TodoistMCP extends McpAgent<Env, unknown, Props> {
                 }
             }
         )
+
+        // Label Management Tools
+
+        // Create a new label
+        this.server.tool(
+            'create_label',
+            'Create a new personal label in Todoist. Labels are used to categorize and filter tasks across projects.',
+            {
+                name: z.string().describe('Name of the label to create'),
+                color: z.enum([
+                    'berry_red', 'red', 'orange', 'yellow', 'olive_green', 'lime_green', 
+                    'green', 'mint_green', 'teal', 'sky_blue', 'light_blue', 'blue', 
+                    'grape', 'violet', 'lavender', 'magenta', 'salmon', 'charcoal', 'grey', 'taupe'
+                ]).optional().describe('Color of the label'),
+                order: z.number().optional().describe('Position order of the label'),
+                is_favorite: z.boolean().optional().describe('Whether to mark this label as a favorite')
+            },
+            async ({ name, color, order, is_favorite }) => {
+                const client = new TodoistClient(this.props.accessToken)
+                try {
+                    const labelData: Record<string, unknown> = { name }
+                    if (color) labelData.color = color
+                    if (order !== undefined) labelData.order = order
+                    if (is_favorite !== undefined) labelData.is_favorite = is_favorite
+                    
+                    const label = await client.post('/labels', labelData)
+                    return {
+                        content: [{ type: 'text', text: JSON.stringify(label, null, 2) }]
+                    }
+                } catch (error: unknown) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+                    return {
+                        content: [{ type: 'text', text: `Error creating label: ${errorMessage}` }],
+                        isError: true
+                    }
+                }
+            }
+        )
+
+        // Get all labels
+        this.server.tool(
+            'get_labels',
+            'Get all personal labels from Todoist. Returns a list of labels with their properties. Supports pagination.',
+            {
+                cursor: z.string().optional().describe('Pagination cursor from previous response for fetching next page'),
+                limit: z.number().min(1).max(200).optional().describe('Number of labels to return per page (default: 50, max: 200)')
+            },
+            async ({ cursor, limit }) => {
+                const client = new TodoistClient(this.props.accessToken)
+                try {
+                    const params: Record<string, unknown> = {}
+                    if (cursor) params.cursor = cursor
+                    if (limit) params.limit = limit
+                    
+                    const response = await client.get('/labels', params)
+                    return {
+                        content: [{ type: 'text', text: JSON.stringify(response, null, 2) }]
+                    }
+                } catch (error: unknown) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+                    return {
+                        content: [{ type: 'text', text: `Error fetching labels: ${errorMessage}` }],
+                        isError: true
+                    }
+                }
+            }
+        )
+
+        // Get a single label
+        this.server.tool(
+            'get_label',
+            'Get a specific label by ID from Todoist. Returns detailed information about the label.',
+            {
+                label_id: z.number().describe('ID of the label to retrieve (must be a number)')
+            },
+            async ({ label_id }) => {
+                const client = new TodoistClient(this.props.accessToken)
+                try {
+                    const label = await client.get(`/labels/${label_id}`)
+                    return {
+                        content: [{ type: 'text', text: JSON.stringify(label, null, 2) }]
+                    }
+                } catch (error: unknown) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+                    return {
+                        content: [{ type: 'text', text: `Error fetching label: ${errorMessage}` }],
+                        isError: true
+                    }
+                }
+            }
+        )
+
+        // Update a label
+        this.server.tool(
+            'update_label',
+            'Update an existing personal label in Todoist. Only provide the fields you want to change.',
+            {
+                label_id: z.number().describe('ID of the label to update (must be a number)'),
+                name: z.string().optional().describe('New name for the label'),
+                color: z.enum([
+                    'berry_red', 'red', 'orange', 'yellow', 'olive_green', 'lime_green', 
+                    'green', 'mint_green', 'teal', 'sky_blue', 'light_blue', 'blue', 
+                    'grape', 'violet', 'lavender', 'magenta', 'salmon', 'charcoal', 'grey', 'taupe'
+                ]).optional().describe('New color for the label'),
+                order: z.number().optional().describe('New position order of the label'),
+                is_favorite: z.boolean().optional().describe('Whether to mark this label as a favorite')
+            },
+            async ({ label_id, name, color, order, is_favorite }) => {
+                const client = new TodoistClient(this.props.accessToken)
+                try {
+                    const updateData: Record<string, unknown> = {}
+                    if (name !== undefined) updateData.name = name
+                    if (color !== undefined) updateData.color = color
+                    if (order !== undefined) updateData.order = order
+                    if (is_favorite !== undefined) updateData.is_favorite = is_favorite
+                    
+                    const label = await client.post(`/labels/${label_id}`, updateData)
+                    return {
+                        content: [{ type: 'text', text: JSON.stringify(label, null, 2) }]
+                    }
+                } catch (error: unknown) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+                    return {
+                        content: [{ type: 'text', text: `Error updating label: ${errorMessage}` }],
+                        isError: true
+                    }
+                }
+            }
+        )
+
+        // Delete a label
+        this.server.tool(
+            'delete_label',
+            'Delete a personal label from Todoist. WARNING: This will remove the label from all tasks that use it.',
+            {
+                label_id: z.number().describe('ID of the label to delete (must be a number)')
+            },
+            async ({ label_id }) => {
+                const client = new TodoistClient(this.props.accessToken)
+                try {
+                    await client.delete(`/labels/${label_id}`)
+                    return {
+                        content: [{ type: 'text', text: 'Label deleted successfully' }]
+                    }
+                } catch (error: unknown) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+                    return {
+                        content: [{ type: 'text', text: `Error deleting label: ${errorMessage}` }],
+                        isError: true
+                    }
+                }
+            }
+        )
+
+        // Get shared labels
+        this.server.tool(
+            'get_shared_labels',
+            'Get all shared labels available in Todoist. Shared labels are labels that can be used across different projects and workspaces.',
+            {
+                omit_personal: z.boolean().optional().describe('Whether to omit personal labels from the results (default: false)')
+            },
+            async ({ omit_personal }) => {
+                const client = new TodoistClient(this.props.accessToken)
+                try {
+                    const params: Record<string, unknown> = {}
+                    if (omit_personal !== undefined) params.omit_personal = omit_personal
+                    
+                    const response = await client.get('/labels/shared', params)
+                    return {
+                        content: [{ type: 'text', text: JSON.stringify(response, null, 2) }]
+                    }
+                } catch (error: unknown) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+                    return {
+                        content: [{ type: 'text', text: `Error fetching shared labels: ${errorMessage}` }],
+                        isError: true
+                    }
+                }
+            }
+        )
+
+        // Remove shared label
+        this.server.tool(
+            'remove_shared_label',
+            'Remove a shared label from your account. This will stop the shared label from appearing in your label list.',
+            {
+                name: z.string().describe('Name of the shared label to remove')
+            },
+            async ({ name }) => {
+                const client = new TodoistClient(this.props.accessToken)
+                try {
+                    await client.post('/labels/shared/remove', { name })
+                    return {
+                        content: [{ type: 'text', text: 'Shared label removed successfully' }]
+                    }
+                } catch (error: unknown) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+                    return {
+                        content: [{ type: 'text', text: `Error removing shared label: ${errorMessage}` }],
+                        isError: true
+                    }
+                }
+            }
+        )
+
+        // Rename shared label
+        this.server.tool(
+            'rename_shared_label',
+            'Rename a shared label in your account. This changes how the shared label appears in your label list.',
+            {
+                name: z.string().describe('Current name of the shared label to rename'),
+                new_name: z.string().describe('New name for the shared label')
+            },
+            async ({ name, new_name }) => {
+                const client = new TodoistClient(this.props.accessToken)
+                try {
+                    await client.post('/labels/shared/rename', { 
+                        name, 
+                        new_name 
+                    })
+                    return {
+                        content: [{ type: 'text', text: 'Shared label renamed successfully' }]
+                    }
+                } catch (error: unknown) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+                    return {
+                        content: [{ type: 'text', text: `Error renaming shared label: ${errorMessage}` }],
+                        isError: true
+                    }
+                }
+            }
+        )
     }
 }
 
