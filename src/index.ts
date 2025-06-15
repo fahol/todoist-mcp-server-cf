@@ -307,6 +307,142 @@ export class TodoistMCP extends McpAgent<Env, unknown, Props> {
                 }
             }
         )
+
+        // Section Management Tools
+
+        // Create a new section
+        this.server.tool(
+            'create_section',
+            'Create a new section within a project in Todoist. Sections help organize tasks within projects.',
+            {
+                name: z.string().describe('Name of the section to create'),
+                project_id: z.string().describe('ID of the project where the section will be created'),
+                order: z.number().optional().describe('Position of the section within the project (optional)')
+            },
+            async ({ name, project_id, order }) => {
+                const client = new TodoistClient(this.props.accessToken)
+                try {
+                    const section = await client.post('/sections', {
+                        name,
+                        project_id,
+                        order
+                    })
+                    return {
+                        content: [{ type: 'text', text: JSON.stringify(section, null, 2) }]
+                    }
+                } catch (error: unknown) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+                    return {
+                        content: [{ type: 'text', text: `Error creating section: ${errorMessage}` }],
+                        isError: true
+                    }
+                }
+            }
+        )
+
+        // Get all sections
+        this.server.tool(
+            'get_sections',
+            'Get all active sections from Todoist. Can filter by project or return all sections across all projects. Supports pagination.',
+            {
+                project_id: z.string().optional().describe('Filter sections by specific project ID (optional)'),
+                cursor: z.string().optional().describe('Pagination cursor from previous response for fetching next page'),
+                limit: z.number().min(1).max(200).optional().describe('Number of sections to return per page (default: 50, max: 200)')
+            },
+            async ({ project_id, cursor, limit }) => {
+                const client = new TodoistClient(this.props.accessToken)
+                try {
+                    const params: Record<string, unknown> = {}
+                    if (project_id) params.project_id = project_id
+                    if (cursor) params.cursor = cursor
+                    if (limit) params.limit = limit
+                    
+                    const response = await client.get('/sections', params)
+                    return {
+                        content: [{ type: 'text', text: JSON.stringify(response, null, 2) }]
+                    }
+                } catch (error: unknown) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+                    return {
+                        content: [{ type: 'text', text: `Error fetching sections: ${errorMessage}` }],
+                        isError: true
+                    }
+                }
+            }
+        )
+
+        // Get a single section
+        this.server.tool(
+            'get_section',
+            'Get a specific section by ID from Todoist. Returns detailed information about the section.',
+            {
+                section_id: z.string().describe('ID of the section to retrieve')
+            },
+            async ({ section_id }) => {
+                const client = new TodoistClient(this.props.accessToken)
+                try {
+                    const section = await client.get(`/sections/${section_id}`)
+                    return {
+                        content: [{ type: 'text', text: JSON.stringify(section, null, 2) }]
+                    }
+                } catch (error: unknown) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+                    return {
+                        content: [{ type: 'text', text: `Error fetching section: ${errorMessage}` }],
+                        isError: true
+                    }
+                }
+            }
+        )
+
+        // Update a section
+        this.server.tool(
+            'update_section',
+            'Update an existing section in Todoist. Currently only the section name can be updated.',
+            {
+                section_id: z.string().describe('ID of the section to update'),
+                name: z.string().describe('New name for the section')
+            },
+            async ({ section_id, name }) => {
+                const client = new TodoistClient(this.props.accessToken)
+                try {
+                    const section = await client.post(`/sections/${section_id}`, { name })
+                    return {
+                        content: [{ type: 'text', text: JSON.stringify(section, null, 2) }]
+                    }
+                } catch (error: unknown) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+                    return {
+                        content: [{ type: 'text', text: `Error updating section: ${errorMessage}` }],
+                        isError: true
+                    }
+                }
+            }
+        )
+
+        // Delete a section
+        this.server.tool(
+            'delete_section',
+            'Delete a section from Todoist. WARNING: This will permanently delete the section and all tasks within it.',
+            {
+                section_id: z.string().describe('ID of the section to delete')
+            },
+            async ({ section_id }) => {
+                const client = new TodoistClient(this.props.accessToken)
+                try {
+                    await client.delete(`/sections/${section_id}`)
+                    return {
+                        content: [{ type: 'text', text: 'Section deleted successfully' }]
+                    }
+                } catch (error: unknown) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+                    return {
+                        content: [{ type: 'text', text: `Error deleting section: ${errorMessage}` }],
+                        isError: true
+                    }
+                }
+            }
+        )
     }
 }
 
