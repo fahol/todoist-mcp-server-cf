@@ -76,6 +76,237 @@ export class TodoistMCP extends McpAgent<Env, unknown, Props> {
                 }
             }
         )
+
+        // Project Management Tools
+
+        // Create a new project
+        this.server.tool(
+            'create_project',
+            'Create a new project in Todoist. Returns the created project with its ID and properties.',
+            {
+                name: z.string().describe('Name of the project to create'),
+                description: z.string().optional().describe('Optional description for the project'),
+                parent_id: z.string().optional().describe('ID of parent project to nest this project under'),
+                color: z.enum([
+                    'berry_red', 'red', 'orange', 'yellow', 'olive_green', 'lime_green', 
+                    'green', 'mint_green', 'teal', 'sky_blue', 'light_blue', 'blue', 
+                    'grape', 'violet', 'lavender', 'magenta', 'salmon', 'charcoal', 'grey', 'taupe'
+                ]).optional().describe('Color of the project icon'),
+                is_favorite: z.boolean().optional().describe('Whether to mark this project as a favorite'),
+                view_style: z.enum(['list', 'board']).optional().describe('Project view style - list or board (kanban) view')
+            },
+            async ({ name, description, parent_id, color, is_favorite, view_style }) => {
+                const client = new TodoistClient(this.props.accessToken)
+                try {
+                    const project = await client.post('/projects', {
+                        name,
+                        description,
+                        parent_id,
+                        color,
+                        is_favorite,
+                        view_style
+                    })
+                    return {
+                        content: [{ type: 'text', text: JSON.stringify(project, null, 2) }]
+                    }
+                } catch (error: unknown) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+                    return {
+                        content: [{ type: 'text', text: `Error creating project: ${errorMessage}` }],
+                        isError: true
+                    }
+                }
+            }
+        )
+
+        // Get all projects
+        this.server.tool(
+            'get_projects',
+            'Get all active projects from Todoist. Returns a list of projects with their properties. Supports pagination.',
+            {
+                cursor: z.string().optional().describe('Pagination cursor from previous response for fetching next page'),
+                limit: z.number().min(1).max(200).optional().describe('Number of projects to return per page (default: 50, max: 200)')
+            },
+            async ({ cursor, limit }) => {
+                const client = new TodoistClient(this.props.accessToken)
+                try {
+                    const params: Record<string, unknown> = {}
+                    if (cursor) params.cursor = cursor
+                    if (limit) params.limit = limit
+                    
+                    const response = await client.get('/projects', params)
+                    return {
+                        content: [{ type: 'text', text: JSON.stringify(response, null, 2) }]
+                    }
+                } catch (error: unknown) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+                    return {
+                        content: [{ type: 'text', text: `Error fetching projects: ${errorMessage}` }],
+                        isError: true
+                    }
+                }
+            }
+        )
+
+        // Get a single project
+        this.server.tool(
+            'get_project',
+            'Get a specific project by ID from Todoist. Returns detailed information about the project.',
+            {
+                project_id: z.string().describe('ID of the project to retrieve')
+            },
+            async ({ project_id }) => {
+                const client = new TodoistClient(this.props.accessToken)
+                try {
+                    const project = await client.get(`/projects/${project_id}`)
+                    return {
+                        content: [{ type: 'text', text: JSON.stringify(project, null, 2) }]
+                    }
+                } catch (error: unknown) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+                    return {
+                        content: [{ type: 'text', text: `Error fetching project: ${errorMessage}` }],
+                        isError: true
+                    }
+                }
+            }
+        )
+
+        // Update a project
+        this.server.tool(
+            'update_project',
+            'Update an existing project in Todoist. Only provide the fields you want to update.',
+            {
+                project_id: z.string().describe('ID of the project to update'),
+                name: z.string().optional().describe('New name for the project'),
+                description: z.string().optional().describe('New description for the project'),
+                color: z.enum([
+                    'berry_red', 'red', 'orange', 'yellow', 'olive_green', 'lime_green', 
+                    'green', 'mint_green', 'teal', 'sky_blue', 'light_blue', 'blue', 
+                    'grape', 'violet', 'lavender', 'magenta', 'salmon', 'charcoal', 'grey', 'taupe'
+                ]).optional().describe('New color for the project icon'),
+                is_favorite: z.boolean().optional().describe('Whether to mark this project as a favorite'),
+                view_style: z.enum(['list', 'board']).optional().describe('Project view style - list or board (kanban) view')
+            },
+            async ({ project_id, name, description, color, is_favorite, view_style }) => {
+                const client = new TodoistClient(this.props.accessToken)
+                try {
+                    const updateData: Record<string, unknown> = {}
+                    if (name !== undefined) updateData.name = name
+                    if (description !== undefined) updateData.description = description
+                    if (color !== undefined) updateData.color = color
+                    if (is_favorite !== undefined) updateData.is_favorite = is_favorite
+                    if (view_style !== undefined) updateData.view_style = view_style
+                    
+                    const project = await client.post(`/projects/${project_id}`, updateData)
+                    return {
+                        content: [{ type: 'text', text: JSON.stringify(project, null, 2) }]
+                    }
+                } catch (error: unknown) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+                    return {
+                        content: [{ type: 'text', text: `Error updating project: ${errorMessage}` }],
+                        isError: true
+                    }
+                }
+            }
+        )
+
+        // Delete a project
+        this.server.tool(
+            'delete_project',
+            'Delete a project from Todoist. WARNING: This will permanently delete the project and all its sections and tasks.',
+            {
+                project_id: z.string().describe('ID of the project to delete')
+            },
+            async ({ project_id }) => {
+                const client = new TodoistClient(this.props.accessToken)
+                try {
+                    await client.delete(`/projects/${project_id}`)
+                    return {
+                        content: [{ type: 'text', text: 'Project deleted successfully' }]
+                    }
+                } catch (error: unknown) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+                    return {
+                        content: [{ type: 'text', text: `Error deleting project: ${errorMessage}` }],
+                        isError: true
+                    }
+                }
+            }
+        )
+
+        // Archive a project
+        this.server.tool(
+            'archive_project',
+            'Archive a project in Todoist. Archived projects are hidden from the active projects list but can be unarchived later.',
+            {
+                project_id: z.string().describe('ID of the project to archive')
+            },
+            async ({ project_id }) => {
+                const client = new TodoistClient(this.props.accessToken)
+                try {
+                    await client.post(`/projects/${project_id}/archive`)
+                    return {
+                        content: [{ type: 'text', text: 'Project archived successfully' }]
+                    }
+                } catch (error: unknown) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+                    return {
+                        content: [{ type: 'text', text: `Error archiving project: ${errorMessage}` }],
+                        isError: true
+                    }
+                }
+            }
+        )
+
+        // Unarchive a project
+        this.server.tool(
+            'unarchive_project',
+            'Unarchive a previously archived project in Todoist. This will restore the project to the active projects list.',
+            {
+                project_id: z.string().describe('ID of the project to unarchive')
+            },
+            async ({ project_id }) => {
+                const client = new TodoistClient(this.props.accessToken)
+                try {
+                    await client.post(`/projects/${project_id}/unarchive`)
+                    return {
+                        content: [{ type: 'text', text: 'Project unarchived successfully' }]
+                    }
+                } catch (error: unknown) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+                    return {
+                        content: [{ type: 'text', text: `Error unarchiving project: ${errorMessage}` }],
+                        isError: true
+                    }
+                }
+            }
+        )
+
+        // Get project collaborators
+        this.server.tool(
+            'get_project_collaborators',
+            'Get all collaborators for a shared project in Todoist. Returns a list of users who have access to the project.',
+            {
+                project_id: z.string().describe('ID of the project to get collaborators for')
+            },
+            async ({ project_id }) => {
+                const client = new TodoistClient(this.props.accessToken)
+                try {
+                    const collaborators = await client.get(`/projects/${project_id}/collaborators`)
+                    return {
+                        content: [{ type: 'text', text: JSON.stringify(collaborators, null, 2) }]
+                    }
+                } catch (error: unknown) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+                    return {
+                        content: [{ type: 'text', text: `Error fetching collaborators: ${errorMessage}` }],
+                        isError: true
+                    }
+                }
+            }
+        )
     }
 }
 
