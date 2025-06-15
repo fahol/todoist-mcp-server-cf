@@ -102,7 +102,8 @@ For maximum security and control, deploy your own instance:
    Wrangler will ask you to create a new worker if necessary
 
 3. **Update Configuration**:
-   - Edit `wrangler.jsonc`
+   - Copy `wrangler.jsonc.example` to `wrangler.jsonc`
+   - Edit `wrangler.jsonc` as a local configuration
    - Update KV namespace ID to your own
    - Modify worker name and route as needed
 
