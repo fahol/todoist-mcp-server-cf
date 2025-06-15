@@ -1,6 +1,6 @@
 # Todoist MCP Server for Cloudflare
 
-A comprehensive, production-ready Model Context Protocol (MCP) server for [Todoist](https://www.todoist.com) that provides complete CRUD operations across all major Todoist entities. This server uses OAuth-based authorization and is deployed on Cloudflare Workers for high availability and global performance.
+A comprehensive Model Context Protocol (MCP) server for [Todoist](https://www.todoist.com) that provides complete CRUD operations across all major Todoist entities. This server uses OAuth-based authorization and is deployed on Cloudflare Workers for high availability and global performance.
 
 This is a fork and an extension from a proof of concept remote MCP server
 implemented by deepakjois (https://github.com/deepakjois/todoist-mcp-server-cf).  Originally had only two basic tools.
