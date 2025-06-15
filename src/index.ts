@@ -669,32 +669,40 @@ export class TodoistMCP extends McpAgent<Env, unknown, Props> {
             }
         )
 
-        // Move tasks
+        // Move a single task
         this.server.tool(
-            'move_tasks',
-            'Move multiple tasks to a different project, section, or make them sub-tasks of another task. Provide at least one destination (project_id, section_id, or parent_id).',
+            'move_task',
+            'Move a single task to a different project, section, or make it a sub-task of another task. You must provide at least one destination: project_id, section_id, or parent_id. This is the primary tool for reorganizing individual tasks.',
             {
-                task_ids: z.array(z.string()).describe('Array of task IDs to move'),
-                project_id: z.string().optional().describe('ID of the destination project'),
-                section_id: z.string().optional().describe('ID of the destination section'),
-                parent_id: z.string().optional().describe('ID of the parent task to move tasks under')
+                task_id: z.string().describe('ID of the task to move'),
+                project_id: z.string().optional().describe('ID of the destination project (optional - provide this to move task to a different project)'),
+                section_id: z.string().optional().describe('ID of the destination section within a project (optional - provide this to move task to a specific section)'),
+                parent_id: z.string().optional().describe('ID of the parent task to make this task a subtask (optional - provide this to create a parent-child relationship)')
             },
-            async ({ task_ids, project_id, section_id, parent_id }) => {
+            async ({ task_id, project_id, section_id, parent_id }) => {
                 const client = new TodoistClient(this.props.accessToken)
                 try {
-                    const moveData: Record<string, unknown> = { task_ids }
+                    // Validate that at least one destination is provided
+                    if (!project_id && !section_id && !parent_id) {
+                        return {
+                            content: [{ type: 'text', text: 'Error: At least one destination must be provided (project_id, section_id, or parent_id)' }],
+                            isError: true
+                        }
+                    }
+                    
+                    const moveData: Record<string, unknown> = {}
                     if (project_id) moveData.project_id = project_id
                     if (section_id) moveData.section_id = section_id
                     if (parent_id) moveData.parent_id = parent_id
                     
-                    await client.post('/tasks/move', moveData)
+                    const result = await client.post(`/tasks/${task_id}/move`, moveData)
                     return {
-                        content: [{ type: 'text', text: `Successfully moved ${task_ids.length} task(s)` }]
+                        content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
                     }
                 } catch (error: unknown) {
                     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
                     return {
-                        content: [{ type: 'text', text: `Error moving tasks: ${errorMessage}` }],
+                        content: [{ type: 'text', text: `Error moving task: ${errorMessage}` }],
                         isError: true
                     }
                 }
