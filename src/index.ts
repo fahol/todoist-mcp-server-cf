@@ -1050,6 +1050,151 @@ export class TodoistMCP extends McpAgent<Env, unknown, Props> {
                 }
             }
         )
+
+        // Comment Management Tools
+
+        // Create a new comment
+        this.server.tool(
+            'create_comment',
+            'Create a new comment on a task or project in Todoist. Comments help add context, notes, or updates to tasks and projects. Either task_id or project_id must be provided.',
+            {
+                content: z.string().describe('The text content of the comment'),
+                task_id: z.string().optional().describe('ID of the task to comment on (either task_id or project_id is required)'),
+                project_id: z.string().optional().describe('ID of the project to comment on (either task_id or project_id is required)'),
+                attachment: z.object({
+                    file_url: z.string().describe('URL of the file to attach'),
+                    file_name: z.string().optional().describe('Name of the attached file'),
+                    file_type: z.string().optional().describe('MIME type of the attached file'),
+                    resource_type: z.string().optional().describe('Type of the attached resource')
+                }).optional().describe('Optional file attachment for the comment')
+            },
+            async ({ content, task_id, project_id, attachment }) => {
+                const client = new TodoistClient(this.props.accessToken)
+                try {
+                    const commentData: Record<string, unknown> = { content }
+                    if (task_id) commentData.task_id = task_id
+                    if (project_id) commentData.project_id = project_id
+                    if (attachment) commentData.attachment = attachment
+                    
+                    const comment = await client.post('/comments', commentData)
+                    return {
+                        content: [{ type: 'text', text: JSON.stringify(comment, null, 2) }]
+                    }
+                } catch (error: unknown) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+                    return {
+                        content: [{ type: 'text', text: `Error creating comment: ${errorMessage}` }],
+                        isError: true
+                    }
+                }
+            }
+        )
+
+        // Get comments
+        this.server.tool(
+            'get_comments',
+            'Get all comments for a specific task or project in Todoist. Either task_id or project_id must be provided. Supports pagination.',
+            {
+                task_id: z.string().optional().describe('ID of the task to get comments for (either task_id or project_id is required)'),
+                project_id: z.string().optional().describe('ID of the project to get comments for (either task_id or project_id is required)'),
+                cursor: z.string().optional().describe('Pagination cursor from previous response for fetching next page'),
+                limit: z.number().min(1).max(200).optional().describe('Number of comments to return per page (default: 50, max: 200)')
+            },
+            async ({ task_id, project_id, cursor, limit }) => {
+                const client = new TodoistClient(this.props.accessToken)
+                try {
+                    const params: Record<string, unknown> = {}
+                    if (task_id) params.task_id = task_id
+                    if (project_id) params.project_id = project_id
+                    if (cursor) params.cursor = cursor
+                    if (limit) params.limit = limit
+                    
+                    const response = await client.get('/comments', params)
+                    return {
+                        content: [{ type: 'text', text: JSON.stringify(response, null, 2) }]
+                    }
+                } catch (error: unknown) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+                    return {
+                        content: [{ type: 'text', text: `Error fetching comments: ${errorMessage}` }],
+                        isError: true
+                    }
+                }
+            }
+        )
+
+        // Get a single comment
+        this.server.tool(
+            'get_comment',
+            'Get a specific comment by ID from Todoist. Returns detailed information about the comment including its content, author, and timestamps.',
+            {
+                comment_id: z.string().describe('ID of the comment to retrieve')
+            },
+            async ({ comment_id }) => {
+                const client = new TodoistClient(this.props.accessToken)
+                try {
+                    const comment = await client.get(`/comments/${comment_id}`)
+                    return {
+                        content: [{ type: 'text', text: JSON.stringify(comment, null, 2) }]
+                    }
+                } catch (error: unknown) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+                    return {
+                        content: [{ type: 'text', text: `Error fetching comment: ${errorMessage}` }],
+                        isError: true
+                    }
+                }
+            }
+        )
+
+        // Update a comment
+        this.server.tool(
+            'update_comment',
+            'Update the content of an existing comment in Todoist. Only the comment content can be modified.',
+            {
+                comment_id: z.string().describe('ID of the comment to update'),
+                content: z.string().describe('New text content for the comment')
+            },
+            async ({ comment_id, content }) => {
+                const client = new TodoistClient(this.props.accessToken)
+                try {
+                    const comment = await client.post(`/comments/${comment_id}`, { content })
+                    return {
+                        content: [{ type: 'text', text: JSON.stringify(comment, null, 2) }]
+                    }
+                } catch (error: unknown) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+                    return {
+                        content: [{ type: 'text', text: `Error updating comment: ${errorMessage}` }],
+                        isError: true
+                    }
+                }
+            }
+        )
+
+        // Delete a comment
+        this.server.tool(
+            'delete_comment',
+            'Delete a comment from Todoist. WARNING: This will permanently delete the comment and cannot be undone.',
+            {
+                comment_id: z.string().describe('ID of the comment to delete')
+            },
+            async ({ comment_id }) => {
+                const client = new TodoistClient(this.props.accessToken)
+                try {
+                    await client.delete(`/comments/${comment_id}`)
+                    return {
+                        content: [{ type: 'text', text: 'Comment deleted successfully' }]
+                    }
+                } catch (error: unknown) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+                    return {
+                        content: [{ type: 'text', text: `Error deleting comment: ${errorMessage}` }],
+                        isError: true
+                    }
+                }
+            }
+        )
     }
 }
 
