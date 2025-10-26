@@ -19,13 +19,14 @@ export class TodoistMCP extends McpAgent<Env, unknown, Props> {
     })
 
     // Tool filtering configuration to reduce context token usage
-    // Setting MINIMAL_TOOL_SET to true exposes only 13 essential tools (~12-15k tokens)
+    // Setting MINIMAL_TOOL_SET to true exposes only 14 essential tools (~12-15k tokens)
     // Setting it to false exposes all 39 tools (~27k tokens)
     private static readonly MINIMAL_TOOL_SET = true
     private static readonly ESSENTIAL_TOOLS = new Set([
         'create_task', 'get_tasks', 'update_task', 'close_task',
         'get_projects', 'get_project', 'move_task', 'get_tasks_by_filter',
-        'create_project', 'update_project', 'get_sections', 'delete_task', 'reopen_task'
+        'create_project', 'update_project', 'get_sections', 'delete_task', 'reopen_task',
+        'get_labels'
     ])
 
     // Helper method to determine if a tool should be registered based on filtering config

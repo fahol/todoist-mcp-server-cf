@@ -13,7 +13,7 @@ This remote server has been tested using Claude's "custom integration" feature.
 
 ## 🚀 Features
 
-This MCP server provides **39 tools** covering a large scope of functionality for:
+This MCP server provides **39 tools** (14 essential tools enabled by default) covering a large scope of functionality for:
 
 ### **📁 Project Management**
 - **CRUD Operations**: Create, read, update, and delete projects
