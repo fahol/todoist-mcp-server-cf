@@ -461,9 +461,10 @@ export class TodoistMCP extends McpAgent<Env, unknown, Props> {
                 due_string: z.string().optional().describe('Due date in natural language (e.g., "tomorrow at 3pm", "next Monday")'),
                 due_date: z.string().optional().describe('Due date in YYYY-MM-DD format'),
                 due_datetime: z.string().optional().describe('Due date and time in ISO datetime format (e.g., "2023-12-31T15:00:00Z")'),
+                deadline_date: z.string().optional().describe('Deadline date in YYYY-MM-DD format (when the task must be completed by, relative to user timezone)'),
                 assignee_id: z.string().optional().describe('ID of the user to assign this task to (for shared projects)')
             },
-            async ({ content, description, project_id, section_id, parent_id, labels, priority, due_string, due_date, due_datetime, assignee_id }) => {
+            async ({ content, description, project_id, section_id, parent_id, labels, priority, due_string, due_date, due_datetime, deadline_date, assignee_id }) => {
                 const client = new TodoistClient(this.props.accessToken)
                 try {
                     const taskData: Record<string, unknown> = { content }
@@ -476,8 +477,9 @@ export class TodoistMCP extends McpAgent<Env, unknown, Props> {
                     if (due_string) taskData.due_string = due_string
                     if (due_date) taskData.due_date = due_date
                     if (due_datetime) taskData.due_datetime = due_datetime
+                    if (deadline_date) taskData.deadline_date = deadline_date
                     if (assignee_id) taskData.assignee_id = assignee_id
-                    
+
                     const task = await client.post('/tasks', taskData)
                     return {
                         content: [{ type: 'text', text: JSON.stringify(task, null, 2) }]
@@ -568,9 +570,10 @@ export class TodoistMCP extends McpAgent<Env, unknown, Props> {
                 due_string: z.string().optional().describe('New due date in natural language'),
                 due_date: z.string().optional().describe('New due date in YYYY-MM-DD format'),
                 due_datetime: z.string().optional().describe('New due date and time in ISO datetime format'),
+                deadline_date: z.string().optional().describe('New deadline date in YYYY-MM-DD format (when the task must be completed by, relative to user timezone)'),
                 assignee_id: z.string().optional().describe('ID of the user to assign this task to')
             },
-            async ({ task_id, content, description, labels, priority, due_string, due_date, due_datetime, assignee_id }) => {
+            async ({ task_id, content, description, labels, priority, due_string, due_date, due_datetime, deadline_date, assignee_id }) => {
                 const client = new TodoistClient(this.props.accessToken)
                 try {
                     const updateData: Record<string, unknown> = {}
@@ -581,8 +584,9 @@ export class TodoistMCP extends McpAgent<Env, unknown, Props> {
                     if (due_string !== undefined) updateData.due_string = due_string
                     if (due_date !== undefined) updateData.due_date = due_date
                     if (due_datetime !== undefined) updateData.due_datetime = due_datetime
+                    if (deadline_date !== undefined) updateData.deadline_date = deadline_date
                     if (assignee_id !== undefined) updateData.assignee_id = assignee_id
-                    
+
                     const task = await client.post(`/tasks/${task_id}`, updateData)
                     return {
                         content: [{ type: 'text', text: JSON.stringify(task, null, 2) }]
