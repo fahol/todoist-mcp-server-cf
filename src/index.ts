@@ -61,8 +61,12 @@ export class TodoistMCP extends McpAgent<Env, unknown, Props> {
                     const tasks = (await client.get('/tasks/filter', { query: filter, limit: 200 })) as {
                         next_cursor?: string
                         results: Array<{
+                            id: string
                             content: string
                             description: string
+                            project_id: string
+                            priority: number
+                            labels: string[]
                             due?: { date: string }
                         }>
                     }
@@ -76,8 +80,12 @@ export class TodoistMCP extends McpAgent<Env, unknown, Props> {
 
                     // Extract required fields and format the response
                     const formattedTasks = tasks.results.map((task) => ({
+                        id: task.id,
                         content: task.content,
                         description: task.description,
+                        project_id: task.project_id,
+                        priority: task.priority,
+                        labels: task.labels,
                         due_date: task.due?.date || null,
                     }))
 
