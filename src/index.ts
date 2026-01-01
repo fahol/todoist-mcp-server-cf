@@ -377,9 +377,9 @@ export class TodoistMCP extends McpAgent<Env, unknown, Props> {
         // Get all sections (essential)
         this.server.tool(
             'get_sections',
-            'Get all active sections from Todoist. Can filter by project or return all sections across all projects. Supports pagination.',
+            'Get all sections for a specific project in Todoist. Supports pagination.',
             {
-                project_id: z.string().optional().describe('Filter sections by specific project ID (optional)'),
+                project_id: z.string().describe('ID of the project to get sections for'),
                 cursor: z.string().optional().describe('Pagination cursor from previous response for fetching next page'),
                 limit: z.number().min(1).max(200).optional().describe('Number of sections to return per page (default: 50, max: 200)')
             },
@@ -387,7 +387,7 @@ export class TodoistMCP extends McpAgent<Env, unknown, Props> {
                 const client = new TodoistClient(this.props.accessToken)
                 try {
                     const params: Record<string, unknown> = {}
-                    if (project_id) params.project_id = project_id
+                    params.project_id = project_id
                     if (cursor) params.cursor = cursor
                     if (limit) params.limit = limit
 
