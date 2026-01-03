@@ -1268,9 +1268,9 @@ export class TodoistMCP extends McpAgent<Env, unknown, Props> {
 }
 
 export default new OAuthProvider({
-    apiRoute: '/sse',
+    apiRoute: '/mcp',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    apiHandler: TodoistMCP.mount('/sse') as any,
+    apiHandler: TodoistMCP.serve('/mcp') as any,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     defaultHandler: TodoistAuthHandler as any,
     authorizeEndpoint: '/authorize',
