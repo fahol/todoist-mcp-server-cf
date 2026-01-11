@@ -35,6 +35,17 @@ export class TodoistMCP extends McpAgent<Env, unknown, Props> {
         return !TodoistMCP.MINIMAL_TOOL_SET || TodoistMCP.ESSENTIAL_TOOLS.has(toolName)
     }
 
+    // Response format schema for list endpoints
+    private static readonly formatSchema = z.enum(['minimal', 'compact', 'full']).optional().default('minimal')
+        .describe('Response format: "minimal" (reduced fields, minified), "compact" (all fields, minified), "full" (all fields, formatted)')
+
+    // Format response based on format parameter
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    private formatResponse(data: any, format: 'minimal' | 'compact' | 'full' | undefined): string {
+        const indent = format === 'full' ? 2 : undefined
+        return JSON.stringify(data, null, indent)
+    }
+
     async init() {
         // Todoist API - Get User Details (non-essential - removed in minimal tool set)
         if (this.shouldRegisterTool('me')) {
@@ -55,21 +66,15 @@ export class TodoistMCP extends McpAgent<Env, unknown, Props> {
                     .describe(
                         'Filter by any [supported filter](https://todoist.com/help/articles/introduction-to-filters-V98wIH). Multiple filters (using the comma `,` operator) are not supported.'
                     ),
+                format: TodoistMCP.formatSchema
             },
-            async ({ filter }) => {
+            async ({ filter, format }) => {
                 const client = new TodoistClient(this.props.accessToken)
                 try {
                     const tasks = (await client.get('/tasks/filter', { query: filter, limit: 200 })) as {
                         next_cursor?: string
-                        results: Array<{
-                            id: string
-                            content: string
-                            description: string
-                            project_id: string
-                            priority: number
-                            labels: string[]
-                            due?: { date: string }
-                        }>
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        results: any[]
                     }
 
                     // check if tasks exceeds 200 by checking next_cursor
@@ -79,19 +84,23 @@ export class TodoistMCP extends McpAgent<Env, unknown, Props> {
                         }
                     }
 
-                    // Extract required fields and format the response
-                    const formattedTasks = tasks.results.map((task) => ({
-                        id: task.id,
-                        content: task.content,
-                        description: task.description,
-                        project_id: task.project_id,
-                        priority: task.priority,
-                        labels: task.labels,
-                        due_date: task.due?.date || null,
-                    }))
+                    // For minimal format, reduce to essential fields
+                    const responseData = format === 'minimal' || format === undefined
+                        ? tasks.results.map((task) => ({
+                            id: task.id,
+                            content: task.content,
+                            description: task.description,
+                            project_id: task.project_id,
+                            section_id: task.section_id,
+                            parent_id: task.parent_id,
+                            priority: task.priority,
+                            labels: task.labels,
+                            due_date: task.due?.date || null,
+                        }))
+                        : tasks.results
 
                     return {
-                        content: [{ type: 'text', text: JSON.stringify(formattedTasks, null, 2) }],
+                        content: [{ type: 'text', text: this.formatResponse(responseData, format) }],
                     }
                 } catch (error: unknown) {
                     console.error('Failed to fetch tasks:', error)
@@ -152,18 +161,36 @@ export class TodoistMCP extends McpAgent<Env, unknown, Props> {
             'Get all active projects from Todoist. Returns a list of projects with their properties. Supports pagination.',
             {
                 cursor: z.string().optional().describe('Pagination cursor from previous response for fetching next page'),
-                limit: z.number().min(1).max(200).optional().describe('Number of projects to return per page (default: 50, max: 200)')
+                limit: z.number().min(1).max(200).optional().describe('Number of projects to return per page (default: 50, max: 200)'),
+                format: TodoistMCP.formatSchema
             },
-            async ({ cursor, limit }) => {
+            async ({ cursor, limit, format }) => {
                 const client = new TodoistClient(this.props.accessToken)
                 try {
                     const params: Record<string, unknown> = {}
                     if (cursor) params.cursor = cursor
                     if (limit) params.limit = limit
-                    
-                    const response = await client.get('/projects', params)
+
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const response = await client.get('/projects', params) as { results: any[], next_cursor?: string }
+
+                    // For minimal format, reduce to essential fields
+                    const responseData = format === 'minimal' || format === undefined
+                        ? {
+                            results: response.results.map((p) => ({
+                                id: p.id,
+                                name: p.name,
+                                color: p.color,
+                                parent_id: p.parent_id,
+                                is_favorite: p.is_favorite,
+                                view_style: p.view_style,
+                            })),
+                            next_cursor: response.next_cursor,
+                        }
+                        : response
+
                     return {
-                        content: [{ type: 'text', text: JSON.stringify(response, null, 2) }]
+                        content: [{ type: 'text', text: this.formatResponse(responseData, format) }]
                     }
                 } catch (error: unknown) {
                     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
@@ -381,9 +408,10 @@ export class TodoistMCP extends McpAgent<Env, unknown, Props> {
             {
                 project_id: z.string().describe('ID of the project to get sections for'),
                 cursor: z.string().optional().describe('Pagination cursor from previous response for fetching next page'),
-                limit: z.number().min(1).max(200).optional().describe('Number of sections to return per page (default: 50, max: 200)')
+                limit: z.number().min(1).max(200).optional().describe('Number of sections to return per page (default: 50, max: 200)'),
+                format: TodoistMCP.formatSchema
             },
-            async ({ project_id, cursor, limit }) => {
+            async ({ project_id, cursor, limit, format }) => {
                 const client = new TodoistClient(this.props.accessToken)
                 try {
                     const params: Record<string, unknown> = {}
@@ -391,9 +419,24 @@ export class TodoistMCP extends McpAgent<Env, unknown, Props> {
                     if (cursor) params.cursor = cursor
                     if (limit) params.limit = limit
 
-                    const response = await client.get('/sections', params)
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const response = await client.get('/sections', params) as { results: any[], next_cursor?: string }
+
+                    // For minimal format, reduce to essential fields
+                    const responseData = format === 'minimal' || format === undefined
+                        ? {
+                            results: response.results.map((s) => ({
+                                id: s.id,
+                                name: s.name,
+                                project_id: s.project_id,
+                                order: s.order,
+                            })),
+                            next_cursor: response.next_cursor,
+                        }
+                        : response
+
                     return {
-                        content: [{ type: 'text', text: JSON.stringify(response, null, 2) }]
+                        content: [{ type: 'text', text: this.formatResponse(responseData, format) }]
                     }
                 } catch (error: unknown) {
                     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
@@ -542,9 +585,10 @@ export class TodoistMCP extends McpAgent<Env, unknown, Props> {
                 label: z.string().optional().describe('Filter tasks by label name'),
                 ids: z.string().optional().describe('Comma-separated list of specific task IDs to retrieve'),
                 cursor: z.string().optional().describe('Pagination cursor from previous response for fetching next page'),
-                limit: z.number().min(1).max(200).optional().describe('Number of tasks to return per page (default: 50, max: 200)')
+                limit: z.number().min(1).max(200).optional().describe('Number of tasks to return per page (default: 50, max: 200)'),
+                format: TodoistMCP.formatSchema
             },
-            async ({ project_id, section_id, parent_id, label, ids, cursor, limit }) => {
+            async ({ project_id, section_id, parent_id, label, ids, cursor, limit, format }) => {
                 const client = new TodoistClient(this.props.accessToken)
                 try {
                     const params: Record<string, unknown> = {}
@@ -555,10 +599,30 @@ export class TodoistMCP extends McpAgent<Env, unknown, Props> {
                     if (ids) params.ids = ids
                     if (cursor) params.cursor = cursor
                     if (limit) params.limit = limit
-                    
-                    const response = await client.get('/tasks', params)
+
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const response = await client.get('/tasks', params) as { results: any[], next_cursor?: string }
+
+                    // For minimal format, reduce to essential fields
+                    const responseData = format === 'minimal' || format === undefined
+                        ? {
+                            results: response.results.map((t) => ({
+                                id: t.id,
+                                content: t.content,
+                                description: t.description,
+                                project_id: t.project_id,
+                                section_id: t.section_id,
+                                parent_id: t.parent_id,
+                                priority: t.priority,
+                                labels: t.labels,
+                                due_date: t.due?.date || null,
+                            })),
+                            next_cursor: response.next_cursor,
+                        }
+                        : response
+
                     return {
-                        content: [{ type: 'text', text: JSON.stringify(response, null, 2) }]
+                        content: [{ type: 'text', text: this.formatResponse(responseData, format) }]
                     }
                 } catch (error: unknown) {
                     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
@@ -920,18 +984,34 @@ export class TodoistMCP extends McpAgent<Env, unknown, Props> {
                 'Get all personal labels from Todoist. Returns a list of labels with their properties. Supports pagination.',
                 {
                     cursor: z.string().optional().describe('Pagination cursor from previous response for fetching next page'),
-                    limit: z.number().min(1).max(200).optional().describe('Number of labels to return per page (default: 50, max: 200)')
+                    limit: z.number().min(1).max(200).optional().describe('Number of labels to return per page (default: 50, max: 200)'),
+                    format: TodoistMCP.formatSchema
                 },
-                async ({ cursor, limit }) => {
+                async ({ cursor, limit, format }) => {
                     const client = new TodoistClient(this.props.accessToken)
                     try {
                         const params: Record<string, unknown> = {}
                         if (cursor) params.cursor = cursor
                         if (limit) params.limit = limit
 
-                        const response = await client.get('/labels', params)
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        const response = await client.get('/labels', params) as { results: any[], next_cursor?: string }
+
+                        // For minimal format, reduce to essential fields
+                        const responseData = format === 'minimal' || format === undefined
+                            ? {
+                                results: response.results.map((l) => ({
+                                    id: l.id,
+                                    name: l.name,
+                                    color: l.color,
+                                    is_favorite: l.is_favorite,
+                                })),
+                                next_cursor: response.next_cursor,
+                            }
+                            : response
+
                         return {
-                            content: [{ type: 'text', text: JSON.stringify(response, null, 2) }]
+                            content: [{ type: 'text', text: this.formatResponse(responseData, format) }]
                         }
                     } catch (error: unknown) {
                         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
@@ -1163,9 +1243,10 @@ export class TodoistMCP extends McpAgent<Env, unknown, Props> {
                     task_id: z.string().optional().describe('ID of the task to get comments for (either task_id or project_id is required)'),
                     project_id: z.string().optional().describe('ID of the project to get comments for (either task_id or project_id is required)'),
                     cursor: z.string().optional().describe('Pagination cursor from previous response for fetching next page'),
-                    limit: z.number().min(1).max(200).optional().describe('Number of comments to return per page (default: 50, max: 200)')
+                    limit: z.number().min(1).max(200).optional().describe('Number of comments to return per page (default: 50, max: 200)'),
+                    format: TodoistMCP.formatSchema
                 },
-                async ({ task_id, project_id, cursor, limit }) => {
+                async ({ task_id, project_id, cursor, limit, format }) => {
                     const client = new TodoistClient(this.props.accessToken)
                     try {
                         const params: Record<string, unknown> = {}
@@ -1174,9 +1255,25 @@ export class TodoistMCP extends McpAgent<Env, unknown, Props> {
                         if (cursor) params.cursor = cursor
                         if (limit) params.limit = limit
 
-                        const response = await client.get('/comments', params)
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        const response = await client.get('/comments', params) as { results: any[], next_cursor?: string }
+
+                        // For minimal format, reduce to essential fields
+                        const responseData = format === 'minimal' || format === undefined
+                            ? {
+                                results: response.results.map((c) => ({
+                                    id: c.id,
+                                    content: c.content,
+                                    posted_at: c.posted_at,
+                                    task_id: c.task_id,
+                                    project_id: c.project_id,
+                                })),
+                                next_cursor: response.next_cursor,
+                            }
+                            : response
+
                         return {
-                            content: [{ type: 'text', text: JSON.stringify(response, null, 2) }]
+                            content: [{ type: 'text', text: this.formatResponse(responseData, format) }]
                         }
                     } catch (error: unknown) {
                         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
